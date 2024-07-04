@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "471814974155",
+    "project_id": "queries-exp-fb",
+    "storage_bucket": "queries-exp-fb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:471814974155:android:d928095a423e849255494e",
+        "android_client_info": {
+          "package_name": "com.example.firestore_queries_exp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAF_H7LiGu3TSLIqSfne5i6t5PsHtJn9A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
