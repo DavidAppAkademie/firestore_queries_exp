@@ -20,7 +20,31 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> {
   // State
-  List<Map<String, dynamic>> contacts = [];
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _ageController;
+  late Stream<QuerySnapshot<Map<String, dynamic>>> contactsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _ageController = TextEditingController(text: "18");
+    contactsStream = FirebaseFirestore.instance
+        .collection('contacts')
+        .where('isDeleted', isEqualTo: false)
+        .orderBy('age')
+        .snapshots();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _nameController.dispose();
+    _ageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,66 +55,92 @@ class _MainAppState extends State<MainApp> {
               seedColor: Colors.greenAccent, brightness: Brightness.dark)),
       home: SafeArea(
         child: Scaffold(
-          body: Column(
-            children: [
-              Expanded(
-                  child: ListView.builder(
-                itemCount: contacts.length,
-                itemBuilder: (context, index) {
-                  final contact = contacts[index];
-                  return ListTile(
-                    title: Text(contact["name"]),
-                    subtitle: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(contact["number"]),
-                        Text(contact["age"].toString()),
-                      ],
-                    ),
-                  );
-                },
-              )),
-              FilledButton(
-                onPressed: () async {
-                  final contactsFuture = await FirebaseFirestore.instance
-                      .collection('contacts')
-                      .orderBy('age')
-                      .get();
-
-                  setState(() {
-                    contacts =
-                        contactsFuture.docs.map((e) => e.data()).toList();
-                  });
-                },
-                child: const Text("Hole Kontakte"),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  // COLLECTION PFAD - Doc adden
-                  // await FirebaseFirestore.instance.collection("contacts").add({
-                  //   "age": 30,
-                  //   "lat": 1.113,
-                  //   "lon": 65.24,
-                  //   "name": "Thomas",
-                  //   "number": "+49 24353463463456"
-                  // });
-
-                  // DOCUMENT PFAD - Doc adden
-                  await FirebaseFirestore.instance
-                      .collection("contacts")
-                      .doc('nikolai')
-                      .set({
-                    "age": 22,
-                    "lat": 1.113,
-                    "lon": 65.24,
-                    "name": "Nikolai",
-                    "number": "+49 24542353543463456"
-                  });
-                },
-                child: const Text("Erstelle Kontakt"),
-              )
-            ],
+          body: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Expanded(
+                    child: StreamBuilder(
+                  stream: contactsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData &&
+                            snapshot.connectionState == ConnectionState.done ||
+                        snapshot.connectionState == ConnectionState.active) {
+                      // FALL 1: Stream hat Daten!
+                      final contacts =
+                          snapshot.data?.docs.map((e) => e.data()).toList() ??
+                              [];
+                      return ListView.builder(
+                        itemCount: contacts.length,
+                        itemBuilder: (context, index) {
+                          final contact = contacts[index];
+                          return ListTile(
+                            title: Text(contact["name"]),
+                            subtitle: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(contact["number"]),
+                                Text(contact["age"].toString()),
+                              ],
+                            ),
+                            trailing: IconButton(
+                                onPressed: () async {
+                                  // Dokument aus Firestore loeschen!
+                                  await FirebaseFirestore.instance
+                                      .collection('contacts')
+                                      .doc(contact['id'])
+                                      .update({
+                                    'isDeleted': true,
+                                  });
+                                },
+                                icon: const Icon(Icons.delete)),
+                          );
+                        },
+                      );
+                    } else if (snapshot.connectionState !=
+                        ConnectionState.done) {
+                      // FALL 2: Sind noch im Ladezustand
+                      return const CircularProgressIndicator();
+                    } else {
+                      // FALL 3: Es gab nen Fehler
+                      return const Icon(Icons.error);
+                    }
+                  },
+                )),
+                TextField(
+                  decoration: const InputDecoration(
+                    hintText: "Name",
+                    label: Text("Name"),
+                  ),
+                  controller: _nameController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: "Telefon"),
+                  controller: _phoneController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: "Alter"),
+                  controller: _ageController,
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    await FirebaseFirestore.instance
+                        .collection("contacts")
+                        .doc('123456')
+                        .set({
+                      "id": "123456",
+                      "age": int.parse(_ageController.text),
+                      "lat": 1.113,
+                      "lon": 65.24,
+                      "name": _nameController.text,
+                      "number": _phoneController.text,
+                    });
+                  },
+                  child: const Text("Erstelle Kontakt"),
+                )
+              ],
+            ),
           ),
         ),
       ),
