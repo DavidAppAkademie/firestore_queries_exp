@@ -125,16 +125,21 @@ class _MainAppState extends State<MainApp> {
                 ),
                 FilledButton(
                   onPressed: () async {
+                    final randomId = FirebaseFirestore.instance
+                        .collection("contacts")
+                        .doc()
+                        .id;
                     await FirebaseFirestore.instance
                         .collection("contacts")
-                        .doc('123456')
+                        .doc(randomId)
                         .set({
-                      "id": "123456",
+                      "id": randomId,
                       "age": int.parse(_ageController.text),
                       "lat": 1.113,
                       "lon": 65.24,
                       "name": _nameController.text,
                       "number": _phoneController.text,
+                      "isDeleted": false,
                     });
                   },
                   child: const Text("Erstelle Kontakt"),
